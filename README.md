@@ -1,4 +1,4 @@
-# Counselor's Insight
+# i2us
 
 A real-time relationship counseling application that helps couples communicate better through AI-powered insights and exercises.
 

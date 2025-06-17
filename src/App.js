@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken }
 import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { Gem, Users, MessageSquare, Send, Bot, TrendingUp, Target, Wind, CheckCircle, PlusCircle, Trash2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import i2usLogo from './i2us-logo.png'; // Import the logo directly
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -69,11 +70,17 @@ export default function App() {
 
     // --- Session Management ---
     const createOrJoinSession = async (partnerUid = null) => {
-        if (!userId) return;
+        console.log("Attempting to create or join session...");
+        if (!userId) {
+            console.log("User ID not available, returning.");
+            return;
+        }
         setSessionLoading(true);
         setError('');
 
         try {
+             console.log("Firestore path base:", `/artifacts/${appId}/public/data/sessions`);
+             console.log("User ID for query:", userId);
              const sessionsRef = collection(db, `/artifacts/${appId}/public/data/sessions`);
              const q = query(sessionsRef, where('participants', 'array-contains', userId));
              const querySnapshot = await getDocs(q);
@@ -94,6 +101,7 @@ export default function App() {
             if (partnerUid) { // Join session logic (delegated to joinPartnerSession)
                  await joinPartnerSession();
             } else { // Create a new session
+                console.log("Attempting to add new session with userId:", userId);
                 const newSessionRef = await addDoc(collection(db, `/artifacts/${appId}/public/data/sessions`), {
                     participants: [userId],
                     createdAt: serverTimestamp(),
@@ -102,12 +110,14 @@ export default function App() {
                 });
                 const newSessionData = { id: newSessionRef.id, participants: [userId], status: 'waiting', cooldownUntil: null };
                 handleSetSession(newSessionData);
+                console.log("New session created:", newSessionData.id);
             }
         } catch (err) {
             console.error("Session creation/joining error:", err);
             setError("Something went wrong. Please try again.");
         } finally {
             setSessionLoading(false);
+            console.log("Session loading set to false.");
         }
     };
     
@@ -146,7 +156,7 @@ export default function App() {
     }
 
     return (
-        <div className="bg-gray-100 min-h-screen font-sans text-gray-800">
+        <div className="bg-gradient-to-br from-purple-100 to-pink-100 animate-gradient-shift min-h-screen font-sans text-gray-800">
             <Header userId={userId} />
             <main className="p-4 md:p-8 max-w-6xl mx-auto">
                 {!session ? (
@@ -177,9 +187,9 @@ function Header({ userId }) {
     return (
         <header className="bg-white shadow-sm p-4 sticky top-0 z-20">
             <div className="max-w-6xl mx-auto flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                    <Gem className="text-pink-500 h-8 w-8" />
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-700">Counselor's Insight</h1>
+                <div className="flex items-center space-x-8">
+                    <img src={i2usLogo} alt="I2Us Logo" className="h-48 w-auto" />
+                    <h2 className="text-6xl font-extrabold text-gray-700 text-gradient-tagline">Say &lt;Mean&gt;</h2>
                 </div>
                 {userId && (
                      <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
@@ -321,7 +331,7 @@ function ChatInterface({ session, userId, setSession }) {
     const callGemini = async (prompt) => {
         let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
         const payload = { contents: chatHistory };
-        const apiKey = "";
+        const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -705,7 +715,7 @@ function Footer() {
     return (
         <footer className="text-center p-4 mt-8 text-xs text-gray-500">
             <p>Built with 400 years of love and a PhD in Psychology.</p>
-            <p>&copy; 2025 Counselor's Insight. All Rights Reserved.</p>
+            <p>&copy; 2025 i2us. All Rights Reserved.</p>
         </footer>
     );
 } 
